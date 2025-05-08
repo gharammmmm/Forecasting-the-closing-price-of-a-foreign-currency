@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تنبؤ سعر XRP</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 20px;
+        }
+        input {
+            margin: 10px;
+        }
+        table {
+            width: 50%;
+            margin: auto;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid black;
+            padding: 8px;
+        }
+        #chart {
+            width: 80%;
+            height: 400px;
+            margin: auto;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>نموذج التنبؤ بسعر XRP</h2>
+    <input type="date" id="dateInput">
+    <input type="file" id="fileInput">
+    <button onclick="uploadFile()">توقع السعر</button>
+
+    <h3>النتائج:</h3>
+    <table id="resultsTable">
+        <tr>
+            <th>اليوم</th>
+            <th>السعر المتوقع</th>
+        </tr>
+    </table>
+
+    <canvas id="chart"></canvas>
+
+    <script>
+        function uploadFile() {
+            var date = document.getElementById("dateInput").value;
+            var file = document.getElementById("fileInput").files[0];
+            if (!date || !file) {
+                alert("يرجى اختيار تاريخ وملف CSV");
+                return;
+            }
+
+            var formData = new FormData();
+            formData.append("file", file);
+            formData.append("date", date);
+
+            $.ajax({
+                url: "/predict",
+                type: "POST",
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function (response) {
+                    if (response.error) {
+                        alert(response.error);
+                        return;
+                    }
+
+                    var resultsTable = $("#resultsTable");
+                    resultsTable.find("tr:gt(0)").remove();
+
+                    // نعرض فقط السعر المتوقع للتاريخ المدخل
+                    var predicted_price = response.predicted_price;
+                    resultsTable.append("<tr><td>" + date + "</td><td>" + predicted_price.toFixed(4) + "</td></tr>");
+
+                    // رسم المخطط البياني فقط للسعر المتوقع لهذا التاريخ
+                    drawChart([predicted_price]);
+                }
+            });
+        }
+
+        function drawChart(predicted_prices) {
+            var ctx = document.getElementById("chart").getContext("2d");
+            new Chart(ctx, {
+                type: "line",
+                data: {
+                    labels: ["السعر المتوقع"],
+                    datasets: [{
+                        label: "السعر المتوقع",
+                        data: predicted_prices,
+                        borderColor: "red",
+                        borderWidth: 2,
+                        fill: false
+                    }]
+                }
+            });
+        }
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+</body>
+</html>
